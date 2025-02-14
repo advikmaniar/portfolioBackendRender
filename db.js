@@ -1,15 +1,22 @@
-const sqlite3 = require("sqlite3").verbose();
-const db = new sqlite3.Database("../database.db");
+const { Pool } = require('pg');
+require('dotenv').config();
 
-db.serialize(() => {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS projectLikes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            projectName TEXT NOT NULL,
-            userId TEXT NOT NULL,
-            UNIQUE(projectName, userId)
-        )
-    `);
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Needed for Railway
 });
 
-module.exports = db;
+const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS projectLikes (
+        id SERIAL PRIMARY KEY,
+        projectName TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        CONSTRAINT unique_project_user UNIQUE (projectName, userId)
+    )
+`;
+
+pool.query(createTableQuery)
+    .then(() => console.log("PostgreSQL Database Connected & Table Ready"))
+    .catch(err => console.error("Database Error:", err));
+
+module.exports = pool;
