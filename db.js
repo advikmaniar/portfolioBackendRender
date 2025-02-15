@@ -1,9 +1,25 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const { Pool } = require("pg");
+require("dotenv").config();
+const { URL } = require("url");
+
+if (!process.env.DATABASE_URL) {
+    console.error("❌ DATABASE_URL is missing in .env file!");
+    process.exit(1);
+}
+
+const databaseUrl = new URL(process.env.DATABASE_URL);
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // Needed for Railway
+    user: databaseUrl.username,
+    password: databaseUrl.password,
+    host: databaseUrl.hostname, 
+    port: databaseUrl.port,
+    database: databaseUrl.pathname.replace("/", ""),
+    ssl: databaseUrl.hostname.includes("railway") ? { rejectUnauthorized: false } : undefined,
+});
+
+pool.on("connect", () => {
+    console.log("✅ Connected to PostgreSQL 🚀");
 });
 
 const createTableQuery = `
@@ -16,7 +32,8 @@ const createTableQuery = `
 `;
 
 pool.query(createTableQuery)
-    .then(() => console.log("PostgreSQL Database Connected & Table Ready"))
-    .catch(err => console.error("Database Error:", err));
+    .then(() => console.log("✅ Table 'projectLikes' is ready!"))
+    .catch(err => console.error("❌ Database Error:", err));
 
 module.exports = pool;
+
